@@ -1,0 +1,2 @@
+# MyCoin
+New technology project
