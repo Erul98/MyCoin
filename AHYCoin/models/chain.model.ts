@@ -34,34 +34,32 @@ class Chain {
         return genesisBlock
     }
 
-    /**
-     * Hash new block
-     * @param newBlock 
-     * @returns newBlock has been hashed
-     */
-    calculateHash(newBlock: Block) {
-        const str = JSON.stringify(newBlock);
-        const hash = crypto.createHash('SHA256');
-        hash.update(str).end();
-        return hash.digest('hex');
+    getGenesisBlock = () => {
+        return this.chain[0];
     }
 
     /**
      * 
-     * @param newBlock 
+     * @param currentBlock 
      * @param previousBlock 
      * @returns 
      */
-    isValidNewBlock = (newBlock: Block, previousBlock: Block) => {
-        if (newBlock.index + 1 !== newBlock.index) {
+    isValidNewBlock = (currentBlock: Block, previousBlock: Block) => {
+        const _currentBlock = currentBlock;
+        const _currentHash = currentBlock.curentHash;
+        _currentBlock.curentHash = "";
+        if (previousBlock.index + 1 !== currentBlock.index) {
             console.log("invalid index");
             return false;
-        } else if (previousBlock.curentHash !== newBlock.prevHash) {
-            console.log("invalid hash");
+        } else if (previousBlock.curentHash !== currentBlock.prevHash) {
+            console.log("invalid hash _");
             return false;
-        } else if (this.calculateHash(newBlock) !== newBlock.curentHash) {
+        } else if (_currentBlock.hash !== _currentHash) {
             console.log("invalide hash");
+            return false;
         }
+        currentBlock.curentHash = _currentHash;
+        return true;
     }
 
     /**
@@ -71,7 +69,6 @@ class Chain {
     replaceChain = (newBlocks: Block[]) => {
         if (this.isValidChain(newBlocks) && newBlocks.length > this.chain.length) {
             console.log("Received Block Chain is Valid");
-
         }
     }
 
@@ -81,7 +78,8 @@ class Chain {
      * @returns 
      */
     isValidChain = (blockToValidate: Block[]) => {
-        if (JSON.stringify(blockToValidate[0]) !== JSON.stringify(this.genesisBlock())) {
+        if (JSON.stringify(blockToValidate[0]) !== JSON.stringify(this.getGenesisBlock())) {
+            console.log("Genersis error!");
             return false;
         }
         var tempBlocks = [blockToValidate[0]];
@@ -89,6 +87,7 @@ class Chain {
             if (this.isValidNewBlock(blockToValidate[i], tempBlocks[i - 1])) {
                 tempBlocks.push(blockToValidate[i]);
             } else {
+                console.log("invalid");
                 return false;
             }
         }
@@ -104,7 +103,6 @@ class Chain {
         const nextIndex = this.lastBlock.index + 1;
         const nextTimestamp = Date.now();
         const newBlock = new Block(nextIndex, this.lastBlock.curentHash, nextTimestamp, transaction, "", 0, 0);
-        newBlock.curentHash = newBlock.hash;
         return newBlock;
     }
 
@@ -117,14 +115,18 @@ class Chain {
         var nonce = 0;
         //const tampBlock = this.chain;
         //tampBlock.push(newBlock);
-        var difficulty = this.getDifficalty(this.chain);
+        const getDifficalty = this.getDifficalty(this.chain);
+        var difficulty = "";
+        for (var i = 0; i < getDifficalty; i++) {
+            difficulty += "0";
+        }
         console.log("mining ........... ")
         while (true) {
             newBlock.nonce = nonce;
-            const hash = this.calculateHash(newBlock);
+            const hash = newBlock.hash;
             if (this.hashMatchesDifficulty(hash, difficulty)) {
                 console.log(nonce.toString());
-                newBlock.difficulty = difficulty;
+                newBlock.difficulty = getDifficalty;
                 return newBlock;
             }
             nonce++;
@@ -137,12 +139,8 @@ class Chain {
      * @param difficulty 
      * @returns 
      */
-    hashMatchesDifficulty = (hash: String, difficulty: number) => {
-        var dif = "";
-        for (var i = 0; i < difficulty; i++) {
-            dif += "0";
-        }
-        if (hash.substr(0, difficulty) === dif) {
+    hashMatchesDifficulty = (hash: String, difficulty: string) => {
+        if (hash.substr(0, difficulty.length) === difficulty) {
             return true;
         }
     }
@@ -197,7 +195,8 @@ class Chain {
             const nextBlock = this.generateNextBlock(transaction);
             // Minining
             const resolvedBlock = this.findBlock(nextBlock);
-
+            //
+            nextBlock.curentHash = nextBlock.hash;
             this.chain.push(resolvedBlock);
         }
     }

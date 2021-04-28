@@ -39,6 +39,10 @@ Chain.instance.chain.forEach(element => {
     }
 });
 
+// const blockChain = Chain.instance.chain;
+//blockChain[1].curentHash = "";
+
+console.log(Chain.instance.isValidChain(Chain.instance.chain));
 console.log(satoshi.money);
 console.log(alice.money);
 console.log(bob.money);
