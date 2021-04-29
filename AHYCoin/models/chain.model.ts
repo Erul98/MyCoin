@@ -2,8 +2,8 @@ import * as crypto from 'crypto';
 import { Block } from "./block.model";
 import { Transaction } from "./transaction.model";
 //
-const BLOCK_GENERATION_INTERVAL: number = 10;
-const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 10;
+const BLOCK_GENERATION_INTERVAL: number = 10 * 60; // 10 minutes to find new Block
+const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 10; // limit 10 blocks to consider for up/down difficulty
 //
 class Chain {
 
@@ -34,6 +34,10 @@ class Chain {
         return genesisBlock
     }
 
+    /**
+     * To get genesis block
+     * @returns genesis block
+     */
     getGenesisBlock = () => {
         return this.chain[0];
     }
@@ -48,9 +52,7 @@ class Chain {
         // Set up to verify
         const _currentBlock = currentBlock;
         const _currentHash = currentBlock.curentHash;
-        const _currentTime = currentBlock.timestamp;
         _currentBlock.curentHash = "";
-        _currentBlock.timestamp = 0;
         // __________________________________________
         if (previousBlock.index + 1 !== currentBlock.index) {
             console.log("invalid index");
@@ -65,12 +67,11 @@ class Chain {
         // ___________________________________________
         // Set default value after this block has been verified
         currentBlock.curentHash = _currentHash;
-        currentBlock.timestamp = _currentTime;
         return true;
     }
 
     /**
-     * 
+     * Replace this chain if the chain received is valid
      * @param newBlocks 
      */
     replaceChain = (newBlocks: Block[]) => {
@@ -83,7 +84,7 @@ class Chain {
     }
 
     /**
-     * 
+     * Check this chain is valid
      * @param blockToValidate 
      * @returns 
      */
@@ -116,11 +117,11 @@ class Chain {
     }
 
     /**
-     * 
+     * Find the block is mining operations to confirm a new block
      * @param newBlock 
      * @returns 
      */
-    findBlock = (newBlock: Block) => {
+    findBlock = (newBlock: Block) => {                     
         var nonce = 0;
         const getDifficalty = this.getDifficalty(this.chain);
         var difficulty = "";
@@ -141,13 +142,13 @@ class Chain {
     }
 
     /**
-     * 
+     * This hash has existed expected difficulty, example: difficulty = 1 same as "0" exists in hash string
      * @param hash 
      * @param difficulty 
      * @returns 
      */
     hashMatchesDifficulty = (hash: String, difficulty: string) => {
-        if (hash.substr(0, difficulty.length) === difficulty) {
+        if (hash.substr(0, difficulty.length) === difficulty) {   
             return true;
         }
     }
@@ -160,10 +161,10 @@ class Chain {
     getDifficalty = (aBlockChain: Block[]) => {
         const lastBlock = aBlockChain[this.chain.length - 1]
         if (lastBlock.index % DIFFICULTY_ADJUSTMENT_INTERVAL === 0
-            && lastBlock.index !== 0) {
-            return this.getAjustDifficalty(lastBlock, aBlockChain);
+            && lastBlock.index !== 0) {                             // 10 blocks added 
+            return this.getAjustDifficalty(lastBlock, aBlockChain); // up/down difficulty 
         } else {
-            return lastBlock.difficulty;
+            return lastBlock.difficulty;                            // current difficulty
         }
     }
 
@@ -174,15 +175,15 @@ class Chain {
      * @returns 
      */
     getAjustDifficalty = (lastBlock: Block, aBlockChain: Block[]) => {
-        const previousAjustmentBlock = aBlockChain[this.chain.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
-        const timeExpected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
-        const timeTaken = lastBlock.timestamp - previousAjustmentBlock.timestamp;
-        if (timeTaken < timeExpected / 2) {
-            return previousAjustmentBlock.difficulty + 1;
-        } else if (timeTaken > timeExpected * 2) {
+        const previousAjustmentBlock = aBlockChain[this.chain.length - DIFFICULTY_ADJUSTMENT_INTERVAL]; // previous 10 blocks added
+        const timeExpected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;                // expected time = constance time * number of blocks
+        const timeTaken = lastBlock.timestamp - previousAjustmentBlock.timestamp;                       // lasted block to 10 blocks
+        if (timeTaken < timeExpected / 2) {                                                             // time expected > 2 * time taken => difficulty down 1 (too easy)
+            return previousAjustmentBlock.difficulty + 1;                                               
+        } else if (timeTaken > timeExpected * 2) {                                                      // time expected * 2 < time taken => difficulty - 1 (too difficulty)
             return previousAjustmentBlock.difficulty - 1;
         } else {
-            return previousAjustmentBlock.difficulty
+            return previousAjustmentBlock.difficulty                                        
         }
     }
 
@@ -193,18 +194,18 @@ class Chain {
      * @param signature 
      */
     addBlock(transaction: Transaction, senderPublicKey: string, signature: Buffer) {
+        // verify signature = public key of sender + signature
         const verifier = crypto.createVerify('SHA256');
         verifier.update(transaction.toString());
         const isValid = verifier.verify(senderPublicKey, signature);
-
         if (isValid) {
             // Basic proof of work
             const nextBlock = this.generateNextBlock(transaction);
             // Minining
             const resolvedBlock = this.findBlock(nextBlock);
             //
-            nextBlock.curentHash = nextBlock.hash;
             nextBlock.timestamp = Date.now();
+            nextBlock.curentHash = nextBlock.hash;
             this.chain.push(resolvedBlock);
         }
     }

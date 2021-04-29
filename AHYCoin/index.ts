@@ -37,14 +37,14 @@ Chain.instance.chain.forEach(element => {
     }
 });
 
-const blockChain = new Chain();
-for (var i = 1; i < Chain.instance.chain.length; i++) {
-    let block = Chain.instance.chain[i];
-    blockChain.chain.push(new Block(block.index, block.prevHash, block.timestamp, block.transaction, block.curentHash, block.difficulty, block.nonce));
-}
-blockChain.chain[1].curentHash = "";
+// const blockChain = new Chain();
+// for (var i = 1; i < Chain.instance.chain.length; i++) {
+//     let block = Chain.instance.chain[i];
+//     blockChain.chain.push(new Block(block.index, block.prevHash, block.timestamp, block.transaction, block.curentHash, block.difficulty, block.nonce));
+// }
+// blockChain.chain[1].curentHash = "";
 console.log(Chain.instance);
-console.log(Chain.instance.isValidChain(blockChain.chain));
+console.log(Chain.instance.isValidChain(Chain.instance.chain));
 console.log(satoshi.money);
 console.log(alice.money);
 console.log(bob.money);
