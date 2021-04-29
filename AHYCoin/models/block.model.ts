@@ -7,7 +7,7 @@ class Block {
     constructor(
         public index: number,                     // index of block
         public prevHash: string,                  // previous hash 
-        public timestamp = Date.now(),            // time new block is created
+        public timestamp: number,            // time new block is created
         public transaction: Transaction,          // a transaction
         public curentHash: string = "",           // hash this block
         public difficulty: number,                // difficulty for confirm a new block

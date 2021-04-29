@@ -50,9 +50,13 @@ class Chain {
          * @returns
          */
         this.isValidNewBlock = (currentBlock, previousBlock) => {
+            // Set up to verify
             const _currentBlock = currentBlock;
             const _currentHash = currentBlock.curentHash;
+            const _currentTime = currentBlock.timestamp;
             _currentBlock.curentHash = "";
+            _currentBlock.timestamp = 0;
+            // __________________________________________
             if (previousBlock.index + 1 !== currentBlock.index) {
                 console.log("invalid index");
                 return false;
@@ -65,7 +69,10 @@ class Chain {
                 console.log("invalide hash");
                 return false;
             }
+            // ___________________________________________
+            // Set default value after this block has been verified
             currentBlock.curentHash = _currentHash;
+            currentBlock.timestamp = _currentTime;
             return true;
         };
         /**
@@ -75,6 +82,10 @@ class Chain {
         this.replaceChain = (newBlocks) => {
             if (this.isValidChain(newBlocks) && newBlocks.length > this.chain.length) {
                 console.log("Received Block Chain is Valid");
+                this.chain = newBlocks;
+            }
+            else {
+                console.log("Received Block Chain is invalid");
             }
         };
         /**
@@ -106,8 +117,7 @@ class Chain {
          */
         this.generateNextBlock = (transaction) => {
             const nextIndex = this.lastBlock.index + 1;
-            const nextTimestamp = Date.now();
-            const newBlock = new block_model_1.Block(nextIndex, this.lastBlock.curentHash, nextTimestamp, transaction, "", 0, 0);
+            const newBlock = new block_model_1.Block(nextIndex, this.lastBlock.curentHash, 0, transaction, "", 0, 0);
             return newBlock;
         };
         /**
@@ -117,8 +127,6 @@ class Chain {
          */
         this.findBlock = (newBlock) => {
             var nonce = 0;
-            //const tampBlock = this.chain;
-            //tampBlock.push(newBlock);
             const getDifficalty = this.getDifficalty(this.chain);
             var difficulty = "";
             for (var i = 0; i < getDifficalty; i++) {
@@ -205,6 +213,7 @@ class Chain {
             const resolvedBlock = this.findBlock(nextBlock);
             //
             nextBlock.curentHash = nextBlock.hash;
+            nextBlock.timestamp = Date.now();
             this.chain.push(resolvedBlock);
         }
     }

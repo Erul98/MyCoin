@@ -25,7 +25,7 @@ class Block {
     // MARK:- Init
     constructor(index, // index of block
     prevHash, // previous hash 
-    timestamp = Date.now(), // time new block is created
+    timestamp, // time new block is created
     transaction, // a transaction
     curentHash = "", // hash this block
     difficulty, // difficulty for confirm a new block
