@@ -54,26 +54,18 @@ class Chain {
          * @returns
          */
         this.isValidNewBlock = (currentBlock, previousBlock) => {
-            // Set up to verify
-            const _currentBlock = currentBlock;
-            const _currentHash = currentBlock.curentHash;
-            _currentBlock.curentHash = "";
-            // __________________________________________
             if (previousBlock.index + 1 !== currentBlock.index) {
                 console.log("invalid index");
                 return false;
             }
             else if (previousBlock.curentHash !== currentBlock.prevHash) {
-                console.log("invalid hash _");
+                console.log("invalid hash previous hash");
                 return false;
             }
-            else if (_currentBlock.hash !== _currentHash) {
-                console.log("invalide hash");
+            else if (currentBlock.hash !== currentBlock.curentHash) {
+                console.log("invalide hash current hash");
                 return false;
             }
-            // ___________________________________________
-            // Set default value after this block has been verified
-            currentBlock.curentHash = _currentHash;
             return true;
         };
         /**
@@ -95,6 +87,8 @@ class Chain {
          * @returns
          */
         this.isValidChain = (blockToValidate) => {
+            console.log(JSON.stringify(blockToValidate[0]));
+            //console.log(this.getGenesisBlock());
             if (JSON.stringify(blockToValidate[0]) !== JSON.stringify(this.getGenesisBlock())) {
                 console.log("Genersis error!");
                 return false;
@@ -117,8 +111,7 @@ class Chain {
          * @returns
          */
         this.generateNextBlock = (transaction) => {
-            const nextIndex = this.lastBlock.index + 1;
-            const newBlock = new block_model_1.Block(nextIndex, this.lastBlock.curentHash, 0, transaction, "", 0, 0);
+            const newBlock = new block_model_1.Block(this.lastBlock.index + 1, this.lastBlock.curentHash, 0, transaction, "", 0, 0);
             return newBlock;
         };
         /**
@@ -129,15 +122,11 @@ class Chain {
         this.findBlock = (newBlock) => {
             var nonce = 0;
             const getDifficalty = this.getDifficalty(this.chain);
-            var difficulty = "";
-            for (var i = 0; i < getDifficalty; i++) {
-                difficulty += "0";
-            }
             console.log("mining ........... ");
             while (true) {
                 newBlock.nonce = nonce;
                 const hash = newBlock.hash;
-                if (this.hashMatchesDifficulty(hash, difficulty)) {
+                if (this.hashMatchesDifficulty(hash, getDifficalty)) {
                     console.log(nonce.toString());
                     newBlock.difficulty = getDifficalty;
                     return newBlock;
@@ -152,7 +141,7 @@ class Chain {
          * @returns
          */
         this.hashMatchesDifficulty = (hash, difficulty) => {
-            if (hash.substr(0, difficulty.length) === difficulty) {
+            if (hash.substr(0, difficulty) === Array(difficulty + 1).join("0")) {
                 return true;
             }
         };

@@ -30,7 +30,7 @@ class Chain {
      */
     genesisBlock = () => {
         const genesisBlock = new Block(0, "", Date.now(), new Transaction(1000000, "", ""), "", 1, 0);
-        genesisBlock.curentHash = genesisBlock.hash
+        genesisBlock.curentHash = genesisBlock.hash;
         return genesisBlock
     }
 
@@ -49,24 +49,16 @@ class Chain {
      * @returns 
      */
     isValidNewBlock = (currentBlock: Block, previousBlock: Block) => {
-        // Set up to verify
-        const _currentBlock = currentBlock;
-        const _currentHash = currentBlock.curentHash;
-        _currentBlock.curentHash = "";
-        // __________________________________________
         if (previousBlock.index + 1 !== currentBlock.index) {
             console.log("invalid index");
             return false;
         } else if (previousBlock.curentHash !== currentBlock.prevHash) {
-            console.log("invalid hash _");
+            console.log("invalid hash previous hash");
             return false;
-        } else if (_currentBlock.hash !== _currentHash) {
-            console.log("invalide hash");
+        } else if (currentBlock.hash !== currentBlock.curentHash) {
+            console.log("invalide hash current hash");
             return false;
         }
-        // ___________________________________________
-        // Set default value after this block has been verified
-        currentBlock.curentHash = _currentHash;
         return true;
     }
 
@@ -89,6 +81,8 @@ class Chain {
      * @returns 
      */
     isValidChain = (blockToValidate: Block[]) => {
+        console.log(JSON.stringify(blockToValidate[0]));
+        //console.log(this.getGenesisBlock());
         if (JSON.stringify(blockToValidate[0]) !== JSON.stringify(this.getGenesisBlock())) {
             console.log("Genersis error!");
             return false;
@@ -111,8 +105,7 @@ class Chain {
      * @returns 
      */
     generateNextBlock = (transaction: Transaction) => {
-        const nextIndex = this.lastBlock.index + 1;
-        const newBlock = new Block(nextIndex, this.lastBlock.curentHash, 0, transaction, "", 0, 0);
+        const newBlock = new Block(this.lastBlock.index + 1, this.lastBlock.curentHash, 0, transaction, "", 0, 0);
         return newBlock;
     }
 
@@ -121,18 +114,14 @@ class Chain {
      * @param newBlock 
      * @returns 
      */
-    findBlock = (newBlock: Block) => {                     
+    findBlock = (newBlock: Block) => {
         var nonce = 0;
         const getDifficalty = this.getDifficalty(this.chain);
-        var difficulty = "";
-        for (var i = 0; i < getDifficalty; i++) {
-            difficulty += "0";
-        }
         console.log("mining ........... ")
         while (true) {
             newBlock.nonce = nonce;
             const hash = newBlock.hash;
-            if (this.hashMatchesDifficulty(hash, difficulty)) {
+            if (this.hashMatchesDifficulty(hash, getDifficalty)) {
                 console.log(nonce.toString());
                 newBlock.difficulty = getDifficalty;
                 return newBlock;
@@ -147,8 +136,8 @@ class Chain {
      * @param difficulty 
      * @returns 
      */
-    hashMatchesDifficulty = (hash: String, difficulty: string) => {
-        if (hash.substr(0, difficulty.length) === difficulty) {   
+    hashMatchesDifficulty = (hash: String, difficulty: number) => {
+        if (hash.substr(0, difficulty) === Array(difficulty + 1).join("0")) {
             return true;
         }
     }
@@ -179,11 +168,11 @@ class Chain {
         const timeExpected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;                // expected time = constance time * number of blocks
         const timeTaken = lastBlock.timestamp - previousAjustmentBlock.timestamp;                       // lasted block to 10 blocks
         if (timeTaken < timeExpected / 2) {                                                             // time expected > 2 * time taken => difficulty down 1 (too easy)
-            return previousAjustmentBlock.difficulty + 1;                                               
+            return previousAjustmentBlock.difficulty + 1;
         } else if (timeTaken > timeExpected * 2) {                                                      // time expected * 2 < time taken => difficulty - 1 (too difficulty)
             return previousAjustmentBlock.difficulty - 1;
         } else {
-            return previousAjustmentBlock.difficulty                                        
+            return previousAjustmentBlock.difficulty
         }
     }
 

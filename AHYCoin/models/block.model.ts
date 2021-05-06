@@ -16,7 +16,7 @@ class Block {
 
     // MARK:- Getter
     get hash() {
-        const str = JSON.stringify(this);
+        const str = JSON.stringify({ index: this.index, prevHash: this.prevHash, timestamp: this.timestamp, transaction: this.transaction, nonce: this.nonce });
         const hash = crypto.createHash('SHA256');
         hash.update(str).end();
         return hash.digest('hex');
