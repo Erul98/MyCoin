@@ -21,20 +21,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Wallet = void 0;
 const crypto = __importStar(require("crypto"));
-const secp256k1 = __importStar(require("secp256k1"));
 const transaction_model_1 = require("./transaction.model");
 const chain_model_1 = require("./chain.model");
 class Wallet {
     // MARK:- Init
-    constructor(money) {
-        this.money = money;
-        // generate privKey
-        do {
-            this.privateKey = crypto.randomBytes(32).toString();
-            console.log(this.privateKey);
-        } while (!secp256k1.privateKeyVerify(Buffer.from(this.privateKey, 'hex')));
-        // get the public key in a compressed format
-        this.publicKey = secp256k1.publicKeyCreate(Buffer.from(this.privateKey, 'hex')).toString();
+    constructor(amount, privateKey, publicKey) {
+        this.amount = amount;
+        this.privateKey = privateKey;
+        this.publicKey = publicKey;
     }
     // MARK: - Functions
     sendMoney(amount, payeePublicKey) {

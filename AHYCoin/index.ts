@@ -2,9 +2,14 @@ import { Wallet } from "./models/wallet.model";
 import { Chain } from "./models/chain.model";
 import { Block } from "./models/block.model";
 import { Transaction } from "./models/transaction.model";
-var express = require("express");
-var bodyParser = require('body-parser');
-var WebSocket = require("ws");
+import * as crypto from 'crypto';
+import { knex } from "./db/database.db";
+import * as bitcoin from 'bitcoinjs-lib';
+
+const express = require("express");
+const bodyParser = require('body-parser');
+const WebSocket = require("ws");
+
 require('dotenv').config();
 
 // MARK:- Variable
@@ -24,6 +29,66 @@ var initHttpServer = () => {
     app.use(bodyParser.json());
 
     app.get('/blocks', (req: any, res: any) => res.send(Chain.instance.chain));
+
+    app.post('/api/v1/wallet', async (req: any, res: any) => {
+        try {
+            // Create key pair
+            const keyPair = bitcoin.ECPair.makeRandom();
+            // Get private key 
+            const privateKey = keyPair.privateKey;
+            // Get public key
+            const publicKey = keyPair.publicKey;
+            // Get address
+            const address = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey });
+            // Create wallet model
+            const wallet = new Wallet(100, (privateKey as Buffer).toString('hex'), publicKey.toString("hex"));
+            // Call db to save
+            await knex('users').insert({amount: wallet.amount, pkey: wallet.publicKey});
+            // Response data
+            res.send({status: 201, body: {amount: wallet.amount, private_key: wallet.privateKey, address: address.address}});
+        } catch (e) {
+            console.log(e);
+            res.send({status: 401, body: null});
+        }
+    });
+
+    app.get('/api/v1/users', (req: any, res: any) => {
+        
+    });
+
+    app.post('/api/v1/my_wallet', async (req: any, res: any) => {
+        try {
+            // Create data virtial to verify private key to login in wallet
+            const data = Date.now().toString();
+            const privateKey = req.body.key;
+            // Create ECPair from private key
+            const keyPair_PR = bitcoin.ECPair.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+            // Signing the data virtial
+            const sign = keyPair_PR.sign(Buffer.from(hashSHA256(data), 'hex'));
+            const list = await knex('users');
+            // console.log(list);
+            var iCheck = false;
+            for (const _item of list) { 
+                //console.log(_item.pkey);
+                // Create ECPair from public key
+                const keyPair_PB = bitcoin.ECPair.fromPublicKey(Buffer.from(_item.pkey, 'hex'));
+                // Verify signing above with virtial data
+                const verifyStatus = keyPair_PB.verify(Buffer.from(hashSHA256(data), 'hex'), sign);
+                //console.log(verifyStatus);
+                if (verifyStatus) {
+                    iCheck = true;
+                    _item.pkey = _item.pkey;
+                    res.send({status: 200, body: _item});
+                    return;
+                }
+            };
+            res.send({status: 401, body: null});
+        } catch (e) {
+            console.log(e);
+            res.send({status: 400, body: null});
+        }
+    });
+
     app.post('/mineBlock', (req: any, res: any) => {
 
         // let data_transaction = req.body.data.transaction;
@@ -32,15 +97,15 @@ var initHttpServer = () => {
         // let signature = req.body.data.signature;
 
         // var newBlock = Chain.instance.addBlock(transaction, senderPublicKey, signature);
-        const satoshi = new Wallet(100);
-        const bob = new Wallet(100);
-        const alice = new Wallet(100);
+        // const satoshi = new Wallet(100);
+        // const bob = new Wallet(100);
+        // const alice = new Wallet(100);
 
-        satoshi.sendMoney(50, bob.publicKey);
+        // satoshi.sendMoney(50, bob.publicKey);
         // bob.sendMoney(23, alice.publicKey);
         // alice.sendMoney(5, satoshi.publicKey);
 
-        broadcast(responseLatestMsg());
+        // broadcast(responseLatestMsg());
         // console.log('block added: ' + JSON.stringify(newBlock));
         res.send();
     });
@@ -53,6 +118,12 @@ var initHttpServer = () => {
     });
     app.listen(http_port, () => console.log('Listening http on port: ' + http_port));
 };
+
+const hashSHA256 = (str: any) => {
+    const hash = crypto.createHash('SHA256');
+    hash.update(str).end();
+    return hash.digest('hex');
+}
 
 var initP2PServer = () => {
     var server = new WebSocket.Server({ port: p2p_port });

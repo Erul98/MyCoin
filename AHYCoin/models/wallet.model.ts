@@ -4,22 +4,12 @@ import { Chain } from "./chain.model";
 
 class Wallet {
 
-    // MARK:- Properties
-    public publicKey: string;
-    public privateKey: string;
-
     // MARK:- Init
     constructor(
-        public money: number
-    ) {
-        const keypair = crypto.generateKeyPairSync('rsa', {
-            modulusLength: 2048,
-            publicKeyEncoding: { type: 'spki', format: 'pem' },
-            privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-        });
-        this.publicKey = keypair.publicKey;
-        this.privateKey = keypair.privateKey;
-    }
+        public amount: number,
+        public privateKey: string,
+        public publicKey: string,
+    ) {}
 
     // MARK: - Functions
     sendMoney(amount: number, payeePublicKey: string) {
