@@ -8,15 +8,14 @@ class Block {
         public index: number,                     // index of block
         public prevHash: string,                  // previous hash 
         public timestamp: number,            // time new block is created
-        public transaction: Transaction,          // a transaction
+        public transactions: Transaction[],          // transactions
         public curentHash: string = "",           // hash this block
-        public difficulty: number,                // difficulty for confirm a new block
         public nonce: number                      // number to confirm a new block
     ) { }
 
     // MARK:- Getter
     get hash() {
-        const str = JSON.stringify({ index: this.index, prevHash: this.prevHash, timestamp: this.timestamp, transaction: this.transaction, nonce: this.nonce });
+        const str = JSON.stringify({ index: this.index, prevHash: this.prevHash, timestamp: this.timestamp, transaction: this.transactions, nonce: this.nonce });
         const hash = crypto.createHash('SHA256');
         hash.update(str).end();
         return hash.digest('hex');

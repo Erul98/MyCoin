@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 import { Block } from "./block.model";
 import { Transaction } from "./transaction.model";
+import ec from "../constants/keygenerator";
 //
 const BLOCK_GENERATION_INTERVAL: number = 10 * 60; // 10 minutes to find new Block
 const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 10; // limit 10 blocks to consider for up/down difficulty
@@ -12,10 +13,15 @@ class Chain {
 
     // MARK:- Properties
     chain: Block[]; // this is block chain
-
+    difficulty: number
+    pendingTransaction: Transaction[]
+    miningReward: number
     // MARK:- Init
     constructor() {
         this.chain = [this.genesisBlock()];
+        this.difficulty = 0;
+        this.pendingTransaction = [];
+        this.miningReward = 100;
     }
 
     // MARK:- Getter
@@ -29,7 +35,7 @@ class Chain {
      * @returns Genersis block
      */
     genesisBlock = () => {
-        const genesisBlock = new Block(0, "", Date.now(), new Transaction(1000000, "", ""), "", 1, 0);
+        const genesisBlock = new Block(0, '', Date.now(), [new Transaction(1000000, '', '048473aef2394a35207d2e98e514ba3fd2927a4963bb60aa8f706800196c7643fd4400b3d2ebf147cf51afbfb319afba5ef0ee7e1df9542800984259adbe3f4a41')], '', 0);
         genesisBlock.curentHash = genesisBlock.hash;
         return genesisBlock
     }
@@ -40,6 +46,18 @@ class Chain {
      */
     getGenesisBlock = () => {
         return this.chain[0];
+    }
+
+    getBlance = (address: any) => {
+        let amount = 0;
+        this.chain.forEach(itemChain => {
+            itemChain.transactions.forEach(itemTx => {
+                if (itemTx.payer === address) {
+                    amount+=itemTx.amount
+                }
+            })
+        });
+        return amount;
     }
 
     /**
@@ -104,8 +122,8 @@ class Chain {
      * @param transaction 
      * @returns 
      */
-    generateNextBlock = (transaction: Transaction) => {
-        const newBlock = new Block(this.lastBlock.index + 1, this.lastBlock.curentHash, 0, transaction, "", 0, 0);
+    generateNextBlock = (transactions: Transaction[]) => {
+        const newBlock = new Block(this.lastBlock.index + 1, this.lastBlock.curentHash, 0, transactions, "", 0);
         return newBlock;
     }
 
@@ -123,7 +141,6 @@ class Chain {
             const hash = newBlock.hash;
             if (this.hashMatchesDifficulty(hash, getDifficalty)) {
                 console.log(nonce.toString());
-                newBlock.difficulty = getDifficalty;
                 return newBlock;
             }
             nonce++;
@@ -153,7 +170,7 @@ class Chain {
             && lastBlock.index !== 0) {                             // 10 blocks added 
             return this.getAjustDifficalty(lastBlock, aBlockChain); // up/down difficulty 
         } else {
-            return lastBlock.difficulty;                            // current difficulty
+            return this.difficulty;                            // current difficulty
         }
     }
 
@@ -168,11 +185,11 @@ class Chain {
         const timeExpected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;                // expected time = constance time * number of blocks
         const timeTaken = lastBlock.timestamp - previousAjustmentBlock.timestamp;                       // lasted block to 10 blocks
         if (timeTaken < timeExpected / 2) {                                                             // time expected > 2 * time taken => difficulty down 1 (too easy)
-            return previousAjustmentBlock.difficulty + 1;
+            return this.difficulty + 1;
         } else if (timeTaken > timeExpected * 2) {                                                      // time expected * 2 < time taken => difficulty - 1 (too difficulty)
-            return previousAjustmentBlock.difficulty - 1;
+            return this.difficulty - 1;
         } else {
-            return previousAjustmentBlock.difficulty
+            return this.difficulty
         }
     }
 
@@ -182,14 +199,14 @@ class Chain {
      * @param senderPublicKey 
      * @param signature 
      */
-    addBlock(transaction: Transaction, senderPublicKey: string, signature: Buffer) {
+    addBlock(transactions: [Transaction], senderPublicKey: string, signature: string) {
         // verify signature = public key of sender + signature
-        const verifier = crypto.createVerify('SHA256');
-        verifier.update(transaction.toString());
-        const isValid = verifier.verify(senderPublicKey, signature);
-        if (isValid) {
+        const verifyKey = ec.keyFromPublic(senderPublicKey, 'hex');
+        const verifyStatus = verifyKey.verify(this.hashSHA256(transactions.toString()), signature);
+        console.log(verifyStatus);
+        if (verifyStatus) {
             // Basic proof of work
-            const nextBlock = this.generateNextBlock(transaction);
+            const nextBlock = this.generateNextBlock(transactions);
             // Minining
             const resolvedBlock = this.findBlock(nextBlock);
             //
@@ -197,6 +214,22 @@ class Chain {
             nextBlock.curentHash = nextBlock.hash;
             this.chain.push(resolvedBlock);
         }
+    }
+
+    minePendingTransaction(miningRewardAddress: any) {
+        const nextBlock = this.generateNextBlock(this.pendingTransaction);
+        // Minining
+        const resolvedBlock = this.findBlock(nextBlock);
+        nextBlock.timestamp = Date.now();
+        nextBlock.curentHash = nextBlock.hash;
+        this.chain.push(resolvedBlock);
+        this.pendingTransaction.push(new Transaction(this.miningReward, "", miningRewardAddress))
+    }
+
+    hashSHA256 = (str: any) => {
+        const hash = crypto.createHash('SHA256');
+        hash.update(str).end();
+        return hash.digest('hex');
     }
 }
 

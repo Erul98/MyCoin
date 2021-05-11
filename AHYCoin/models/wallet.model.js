@@ -18,25 +18,38 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Wallet = void 0;
 const crypto = __importStar(require("crypto"));
 const transaction_model_1 = require("./transaction.model");
-const chain_model_1 = require("./chain.model");
+const keygenerator_1 = __importDefault(require("../constants/keygenerator"));
 class Wallet {
     // MARK:- Init
     constructor(amount, privateKey, publicKey) {
         this.amount = amount;
         this.privateKey = privateKey;
         this.publicKey = publicKey;
+        this.hashSHA256 = (data) => {
+            const hash = crypto.createHash('SHA256');
+            hash.update(data).end();
+            return hash.digest('hex');
+        };
     }
     // MARK: - Functions
     sendMoney(amount, payeePublicKey) {
         const transaction = new transaction_model_1.Transaction(amount, this.publicKey, payeePublicKey);
-        const sign = crypto.createSign('SHA256');
-        sign.update(transaction.toString()).end();
-        const signature = sign.sign(this.privateKey);
-        chain_model_1.Chain.instance.addBlock(transaction, this.publicKey, signature);
+        const signingKey = keygenerator_1.default.keyFromPrivate(this.privateKey, 'hex');
+        const signature = signingKey.sign(this.hashSHA256(transaction.toString()), 'base64');
+        // Chain.instance.addBlock(transaction, this.publicKey, signature.toDER('hex'));
+    }
+    signTransaction(amount, payeePublicKey) {
+        const transaction = new transaction_model_1.Transaction(amount, this.publicKey, payeePublicKey);
+        const signingKey = keygenerator_1.default.keyFromPrivate(this.privateKey, 'hex');
+        const signature = signingKey.sign(this.hashSHA256(transaction.toString()), 'base64');
+        return signature;
     }
 }
 exports.Wallet = Wallet;

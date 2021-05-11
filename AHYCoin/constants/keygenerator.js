@@ -19,30 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Block = void 0;
-const crypto = __importStar(require("crypto"));
-class Block {
-    // MARK:- Init
-    constructor(index, // index of block
-    prevHash, // previous hash 
-    timestamp, // time new block is created
-    transactions, // transactions
-    curentHash = "", // hash this block
-    nonce // number to confirm a new block
-    ) {
-        this.index = index;
-        this.prevHash = prevHash;
-        this.timestamp = timestamp;
-        this.transactions = transactions;
-        this.curentHash = curentHash;
-        this.nonce = nonce;
-    }
-    // MARK:- Getter
-    get hash() {
-        const str = JSON.stringify({ index: this.index, prevHash: this.prevHash, timestamp: this.timestamp, transaction: this.transactions, nonce: this.nonce });
-        const hash = crypto.createHash('SHA256');
-        hash.update(str).end();
-        return hash.digest('hex');
-    }
-}
-exports.Block = Block;
+const EL = __importStar(require("elliptic"));
+const EC = EL.ec;
+const ec = new EC('secp256k1');
+exports.default = ec;
