@@ -25,6 +25,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Wallet = void 0;
 const crypto = __importStar(require("crypto"));
 const transaction_model_1 = require("./transaction.model");
+const chain_model_1 = require("./chain.model");
 const keygenerator_1 = __importDefault(require("../constants/keygenerator"));
 class Wallet {
     // MARK:- Init
@@ -42,14 +43,8 @@ class Wallet {
     sendMoney(amount, payeePublicKey) {
         const transaction = new transaction_model_1.Transaction(amount, this.publicKey, payeePublicKey);
         const signingKey = keygenerator_1.default.keyFromPrivate(this.privateKey, 'hex');
-        const signature = signingKey.sign(this.hashSHA256(transaction.toString()), 'base64');
-        // Chain.instance.addBlock(transaction, this.publicKey, signature.toDER('hex'));
-    }
-    signTransaction(amount, payeePublicKey) {
-        const transaction = new transaction_model_1.Transaction(amount, this.publicKey, payeePublicKey);
-        const signingKey = keygenerator_1.default.keyFromPrivate(this.privateKey, 'hex');
-        const signature = signingKey.sign(this.hashSHA256(transaction.toString()), 'base64');
-        return signature;
+        transaction.signTransaction(signingKey);
+        chain_model_1.Chain.instance.addTransaction(transaction);
     }
 }
 exports.Wallet = Wallet;

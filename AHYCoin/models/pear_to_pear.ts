@@ -1,11 +1,12 @@
 import WebSocket = require('ws');
 import {Server} from 'ws';
 import { Block } from "./block.model";
-import { Chain } from './chain.model';
 import { Transaction } from "./transaction.model";
+import { Chain } from "./chain.model";
 
 // MARK:- Variable
 const sockets: WebSocket[] = [];
+let serverToClient: Server;
 
 enum MessageType {
     QUERY_LATEST = 0,
@@ -18,6 +19,18 @@ enum MessageType {
 class Message {
     public type: MessageType = 0;
     public data: any;
+}
+
+const initServer = () => {
+    serverToClient = new WebSocket.Server({host: '192.168.1.5', port: 40567});
+}
+
+const broadcastAll = (msg: any) => {
+    for(const client of serverToClient.clients) {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(msg));
+        }
+    }
 }
 
 const initP2PServer = (p2pPort: number) => {
@@ -87,7 +100,7 @@ const initMessageHandler = (ws: WebSocket) => {
                     }
                     receivedTransactions.forEach((transaction: Transaction) => {
                         try {
-                            //handleReceivedTransaction(transaction);
+                            Chain.instance.addTransaction(transaction);
                             // if no error is thrown, transaction was indeed added to the pool
                             // let's broadcast transaction pool
                             broadCastTransactionPool();
@@ -126,7 +139,7 @@ const queryTransactionPoolMsg = (): Message => ({
 
 const responseTransactionPoolMsg = (): Message => ({
     'type': MessageType.RESPONSE_TRANSACTION_POOL,
-    'data': null
+    'data': JSON.stringify(Chain.instance.pendingTransaction)
 });
 
 const initErrorHandler = (ws: WebSocket) => {
@@ -149,9 +162,8 @@ const handleBlockchainResponse = (receivedBlocks: Block[]) => {
         console.log('blockchain possibly behind. We got: '
             + latestBlockHeld.index + ' Peer got: ' + latestBlockReceived.index);
         if (latestBlockHeld.hash === latestBlockReceived.prevHash) {
-            // if (addBlockToChain(latestBlockReceived)) {
-            //     broadcast(responseLatestMsg());
-            // }
+            Chain.instance.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')
+            broadcast(responseLatestMsg());
         } else if (receivedBlocks.length === 1) {
             console.log('We have to query the chain from our peer');
             broadcast(queryAllMsg());
@@ -182,4 +194,4 @@ const broadCastTransactionPool = () => {
     broadcast(responseTransactionPoolMsg());
 };
 
-export {connectToPeers, broadcastLatest, broadCastTransactionPool, initP2PServer, getSockets};
+export {connectToPeers, broadcastLatest, broadCastTransactionPool, initP2PServer, getSockets, initServer, broadcastAll};

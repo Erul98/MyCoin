@@ -16,15 +16,8 @@ class Wallet {
     sendMoney(amount: number, payeePublicKey: string) {
         const transaction = new Transaction(amount, this.publicKey, payeePublicKey);
         const signingKey = ec.keyFromPrivate(this.privateKey, 'hex');
-        const signature = signingKey.sign(this.hashSHA256(transaction.toString()), 'base64');
-        // Chain.instance.addBlock(transaction, this.publicKey, signature.toDER('hex'));
-    }
-
-    signTransaction(amount: number, payeePublicKey: string) {
-        const transaction = new Transaction(amount, this.publicKey, payeePublicKey);
-        const signingKey = ec.keyFromPrivate(this.privateKey, 'hex');
-        const signature = signingKey.sign(this.hashSHA256(transaction.toString()), 'base64');
-        return signature
+        transaction.signTransaction(signingKey);
+        Chain.instance.addTransaction(transaction)
     }
 
     hashSHA256 = (data: any) => {

@@ -33,6 +33,9 @@ var initHttpServer = (http_port: number) => {
             // Call db to save
             //await knex('users').insert({amount: wallet.amount, pkey: wallet.publicKey});
             // Response data
+            if (Chain.instance.chain.length <= 10) {
+                Chain.instance.tenBlockReward(publicKey);
+            }
             res.send({status: 201, body: wallet});
         } catch (e) {
             console.log(e);
@@ -49,12 +52,6 @@ var initHttpServer = (http_port: number) => {
             // Create data virtial to verify private key to login in wallet
             const privateKey = req.body.key;
             const keyPair = ec.keyFromPrivate(privateKey);
-            // const list = await knex('users');
-            // console.log(list);
-            // var iCheck = false;
-            // for (const _item of list) {
-                
-            // };
             res.send({status: 200, body: {
                 amount: Chain.instance.getBlance(keyPair.getPublic('hex')),
                 address: keyPair.getPublic('hex'),
@@ -65,33 +62,25 @@ var initHttpServer = (http_port: number) => {
         }
     });
 
-    app.post('/mineBlock', async(req: any, res: any) => {
-
-        // let data_transaction = req.body.data.transaction;
-        // let transaction = new Transaction(data_transaction.amount, data_transaction.payer, data_transaction.payee);
-        // let senderPublicKey = req.body.data.senderPublicKey;
-        // let signature = req.body.data.signature;
-        const user = await knex('users').where('pkey', req.body.payerAdress);
-        if (user.length !== 0) {
-            const wallet = new Wallet(user.amount, req.body.privateKey, req.body.payerAdress);
-            // const alice = new Wallet(100);
-
-            wallet.sendMoney(50, req.body.payeeAdress);
-            // bob.sendMoney(23, alice.publicKey);
-            // alice.sendMoney(5, satoshi.publicKey);
-
-            // broadcast(responseLatestMsg());
-            // console.log('block added: ' + JSON.stringify(newBlock));
-            res.send();
+    app.post('/transaction', async(req: any, res: any) => {
+        const amount = Chain.instance.getBlance(req.body.payerAdress);
+        if (amount > req.body.amount) {
+            const wallet = new Wallet(amount, req.body.privateKey, req.body.payerAdress);
+            wallet.sendMoney(req.body.amount, req.body.payeeAdress);
+            res.send({status: 200, body: 'send money success'});   
+        } else {
+            res.send({status: 400, body: 'send money error'});   
         }
     });
-    // app.get('/peers', (req: any, res: any) => {
-    //     res.send(sockets.map(s => s._socket.remoteAddress + ':' + s._socket.remotePort));
-    // });
-    // app.post('/addPeer', (req: any, res: any) => {
-    //     p2p.connectToPeers([req.body.peer]);
-    //     res.send();
-    // });
+
+    app.get('/peers', (req: any, res: any) => {
+        res.send(p2p.getSockets());
+    });
+
+    app.post('/addPeer', (req: any, res: any) => {
+        p2p.connectToPeers(req.body.peer);
+        res.send();
+    });
     app.listen(http_port, '192.168.1.5', () => console.log('Listening http on port: ' + http_port));
 };
 
@@ -102,4 +91,5 @@ const hashSHA256 = (str: any) => {
 }
 
 initHttpServer(httpPort);
+p2p.initServer();
 p2p.initP2PServer(p2pPort);

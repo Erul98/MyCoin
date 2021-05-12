@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import { Block } from "./block.model";
 import { Transaction } from "./transaction.model";
-import ec from "../constants/keygenerator";
+import {broadcastLatest, broadCastTransactionPool, broadcastAll} from './pear_to_pear';
 //
 const BLOCK_GENERATION_INTERVAL: number = 10 * 60; // 10 minutes to find new Block
 const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 10; // limit 10 blocks to consider for up/down difficulty
@@ -19,9 +19,9 @@ class Chain {
     // MARK:- Init
     constructor() {
         this.chain = [this.genesisBlock()];
-        this.difficulty = 0;
+        this.difficulty = 1;
         this.pendingTransaction = [];
-        this.miningReward = 100;
+        this.miningReward = 10;
     }
 
     // MARK:- Getter
@@ -35,9 +35,19 @@ class Chain {
      * @returns Genersis block
      */
     genesisBlock = () => {
-        const genesisBlock = new Block(0, '', Date.now(), [new Transaction(1000000, '', '048473aef2394a35207d2e98e514ba3fd2927a4963bb60aa8f706800196c7643fd4400b3d2ebf147cf51afbfb319afba5ef0ee7e1df9542800984259adbe3f4a41')], '', 0);
+        const genesisBlock = new Block(0, '', [new Transaction(1000000, '', '044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')], '', 0);
         genesisBlock.curentHash = genesisBlock.hash;
         return genesisBlock
+    }
+
+    tenBlockReward = (address: any) => {
+        if (this.chain.length > 10) {
+            return;
+        }
+        const block = new Block(0, this.lastBlock.curentHash, [new Transaction(100, 'Rewared', address)], '', 0);
+        block.curentHash = block.hash;
+        this.chain.push(block);
+        broadcastAll(this.chain);
     }
 
     /**
@@ -53,6 +63,9 @@ class Chain {
         this.chain.forEach(itemChain => {
             itemChain.transactions.forEach(itemTx => {
                 if (itemTx.payer === address) {
+                    amount-=itemTx.amount
+                }
+                if (itemTx.payee === address) {
                     amount+=itemTx.amount
                 }
             })
@@ -105,8 +118,11 @@ class Chain {
             console.log("Genersis error!");
             return false;
         }
-        var tempBlocks = [blockToValidate[0]];
+        var tempBlocks = blockToValidate;
         for (var i = 1; i < blockToValidate.length; i++) {
+            if (!blockToValidate[i].hasValidTransaction()) {
+                return false;
+            }
             if (this.isValidNewBlock(blockToValidate[i], tempBlocks[i - 1])) {
                 tempBlocks.push(blockToValidate[i]);
             } else {
@@ -123,7 +139,7 @@ class Chain {
      * @returns 
      */
     generateNextBlock = (transactions: Transaction[]) => {
-        const newBlock = new Block(this.lastBlock.index + 1, this.lastBlock.curentHash, 0, transactions, "", 0);
+        const newBlock = new Block(this.lastBlock.index + 1, this.lastBlock.curentHash, transactions, "", 0);
         return newBlock;
     }
 
@@ -133,30 +149,10 @@ class Chain {
      * @returns 
      */
     findBlock = (newBlock: Block) => {
-        var nonce = 0;
         const getDifficalty = this.getDifficalty(this.chain);
         console.log("mining ........... ")
-        while (true) {
-            newBlock.nonce = nonce;
-            const hash = newBlock.hash;
-            if (this.hashMatchesDifficulty(hash, getDifficalty)) {
-                console.log(nonce.toString());
-                return newBlock;
-            }
-            nonce++;
-        }
-    }
-
-    /**
-     * This hash has existed expected difficulty, example: difficulty = 1 same as "0" exists in hash string
-     * @param hash 
-     * @param difficulty 
-     * @returns 
-     */
-    hashMatchesDifficulty = (hash: String, difficulty: number) => {
-        if (hash.substr(0, difficulty) === Array(difficulty + 1).join("0")) {
-            return true;
-        }
+        newBlock.mineBlock(getDifficalty);
+        return newBlock;
     }
 
     /**
@@ -199,31 +195,28 @@ class Chain {
      * @param senderPublicKey 
      * @param signature 
      */
-    addBlock(transactions: [Transaction], senderPublicKey: string, signature: string) {
-        // verify signature = public key of sender + signature
-        const verifyKey = ec.keyFromPublic(senderPublicKey, 'hex');
-        const verifyStatus = verifyKey.verify(this.hashSHA256(transactions.toString()), signature);
-        console.log(verifyStatus);
-        if (verifyStatus) {
-            // Basic proof of work
-            const nextBlock = this.generateNextBlock(transactions);
-            // Minining
-            const resolvedBlock = this.findBlock(nextBlock);
-            //
-            nextBlock.timestamp = Date.now();
-            nextBlock.curentHash = nextBlock.hash;
-            this.chain.push(resolvedBlock);
-        }
-    }
-
     minePendingTransaction(miningRewardAddress: any) {
         const nextBlock = this.generateNextBlock(this.pendingTransaction);
         // Minining
         const resolvedBlock = this.findBlock(nextBlock);
-        nextBlock.timestamp = Date.now();
-        nextBlock.curentHash = nextBlock.hash;
         this.chain.push(resolvedBlock);
-        this.pendingTransaction.push(new Transaction(this.miningReward, "", miningRewardAddress))
+        this.pendingTransaction = [];
+        broadcastAll(this.chain);
+        broadcastLatest();
+        this.pendingTransaction.push(new Transaction(this.miningReward, "Reward", miningRewardAddress));
+    }
+
+    addTransaction(transaction: Transaction) {
+        if (!transaction.payer || !transaction.payee) {
+            throw new Error('Transaction must include payer & payee address');
+        }
+
+        if (!transaction.isValid()) {
+            throw new Error('Cannot add valid transaction to chain');
+        }
+        this.pendingTransaction.push(transaction);
+        this.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')
+        broadCastTransactionPool();
     }
 
     hashSHA256 = (str: any) => {

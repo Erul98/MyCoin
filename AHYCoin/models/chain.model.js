@@ -18,15 +18,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Chain = void 0;
 const crypto = __importStar(require("crypto"));
 const block_model_1 = require("./block.model");
 const transaction_model_1 = require("./transaction.model");
-const keygenerator_1 = __importDefault(require("../constants/keygenerator"));
+const pear_to_pear_1 = require("./pear_to_pear");
 //
 const BLOCK_GENERATION_INTERVAL = 10 * 60; // 10 minutes to find new Block
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10; // limit 10 blocks to consider for up/down difficulty
@@ -40,9 +37,18 @@ class Chain {
          * @returns Genersis block
          */
         this.genesisBlock = () => {
-            const genesisBlock = new block_model_1.Block(0, '', Date.now(), [new transaction_model_1.Transaction(1000000, '', '048473aef2394a35207d2e98e514ba3fd2927a4963bb60aa8f706800196c7643fd4400b3d2ebf147cf51afbfb319afba5ef0ee7e1df9542800984259adbe3f4a41')], '', 0);
+            const genesisBlock = new block_model_1.Block(0, '', [new transaction_model_1.Transaction(1000000, '', '044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')], '', 0);
             genesisBlock.curentHash = genesisBlock.hash;
             return genesisBlock;
+        };
+        this.tenBlockReward = (address) => {
+            if (this.chain.length > 10) {
+                return;
+            }
+            const block = new block_model_1.Block(0, this.lastBlock.curentHash, [new transaction_model_1.Transaction(100, 'Rewared', address)], '', 0);
+            block.curentHash = block.hash;
+            this.chain.push(block);
+            pear_to_pear_1.broadcastAll(this.chain);
         };
         /**
          * To get genesis block
@@ -56,6 +62,9 @@ class Chain {
             this.chain.forEach(itemChain => {
                 itemChain.transactions.forEach(itemTx => {
                     if (itemTx.payer === address) {
+                        amount -= itemTx.amount;
+                    }
+                    if (itemTx.payee === address) {
                         amount += itemTx.amount;
                     }
                 });
@@ -108,8 +117,11 @@ class Chain {
                 console.log("Genersis error!");
                 return false;
             }
-            var tempBlocks = [blockToValidate[0]];
+            var tempBlocks = blockToValidate;
             for (var i = 1; i < blockToValidate.length; i++) {
+                if (!blockToValidate[i].hasValidTransaction()) {
+                    return false;
+                }
                 if (this.isValidNewBlock(blockToValidate[i], tempBlocks[i - 1])) {
                     tempBlocks.push(blockToValidate[i]);
                 }
@@ -126,7 +138,7 @@ class Chain {
          * @returns
          */
         this.generateNextBlock = (transactions) => {
-            const newBlock = new block_model_1.Block(this.lastBlock.index + 1, this.lastBlock.curentHash, 0, transactions, "", 0);
+            const newBlock = new block_model_1.Block(this.lastBlock.index + 1, this.lastBlock.curentHash, transactions, "", 0);
             return newBlock;
         };
         /**
@@ -135,29 +147,10 @@ class Chain {
          * @returns
          */
         this.findBlock = (newBlock) => {
-            var nonce = 0;
             const getDifficalty = this.getDifficalty(this.chain);
             console.log("mining ........... ");
-            while (true) {
-                newBlock.nonce = nonce;
-                const hash = newBlock.hash;
-                if (this.hashMatchesDifficulty(hash, getDifficalty)) {
-                    console.log(nonce.toString());
-                    return newBlock;
-                }
-                nonce++;
-            }
-        };
-        /**
-         * This hash has existed expected difficulty, example: difficulty = 1 same as "0" exists in hash string
-         * @param hash
-         * @param difficulty
-         * @returns
-         */
-        this.hashMatchesDifficulty = (hash, difficulty) => {
-            if (hash.substr(0, difficulty) === Array(difficulty + 1).join("0")) {
-                return true;
-            }
+            newBlock.mineBlock(getDifficalty);
+            return newBlock;
         };
         /**
          *
@@ -200,9 +193,9 @@ class Chain {
             return hash.digest('hex');
         };
         this.chain = [this.genesisBlock()];
-        this.difficulty = 0;
+        this.difficulty = 1;
         this.pendingTransaction = [];
-        this.miningReward = 100;
+        this.miningReward = 10;
     }
     // MARK:- Getter
     get lastBlock() {
@@ -214,30 +207,26 @@ class Chain {
      * @param senderPublicKey
      * @param signature
      */
-    addBlock(transactions, senderPublicKey, signature) {
-        // verify signature = public key of sender + signature
-        const verifyKey = keygenerator_1.default.keyFromPublic(senderPublicKey, 'hex');
-        const verifyStatus = verifyKey.verify(this.hashSHA256(transactions.toString()), signature);
-        console.log(verifyStatus);
-        if (verifyStatus) {
-            // Basic proof of work
-            const nextBlock = this.generateNextBlock(transactions);
-            // Minining
-            const resolvedBlock = this.findBlock(nextBlock);
-            //
-            nextBlock.timestamp = Date.now();
-            nextBlock.curentHash = nextBlock.hash;
-            this.chain.push(resolvedBlock);
-        }
-    }
     minePendingTransaction(miningRewardAddress) {
         const nextBlock = this.generateNextBlock(this.pendingTransaction);
         // Minining
         const resolvedBlock = this.findBlock(nextBlock);
-        nextBlock.timestamp = Date.now();
-        nextBlock.curentHash = nextBlock.hash;
         this.chain.push(resolvedBlock);
-        this.pendingTransaction.push(new transaction_model_1.Transaction(this.miningReward, "", miningRewardAddress));
+        this.pendingTransaction = [];
+        pear_to_pear_1.broadcastAll(this.chain);
+        pear_to_pear_1.broadcastLatest();
+        this.pendingTransaction.push(new transaction_model_1.Transaction(this.miningReward, "Reward", miningRewardAddress));
+    }
+    addTransaction(transaction) {
+        if (!transaction.payer || !transaction.payee) {
+            throw new Error('Transaction must include payer & payee address');
+        }
+        if (!transaction.isValid()) {
+            throw new Error('Cannot add valid transaction to chain');
+        }
+        this.pendingTransaction.push(transaction);
+        this.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2');
+        pear_to_pear_1.broadCastTransactionPool();
     }
 }
 exports.Chain = Chain;

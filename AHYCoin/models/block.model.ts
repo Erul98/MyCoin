@@ -7,18 +7,34 @@ class Block {
     constructor(
         public index: number,                     // index of block
         public prevHash: string,                  // previous hash 
-        public timestamp: number,            // time new block is created
-        public transactions: Transaction[],          // transactions
+        public transactions: Transaction[],       // transactions
         public curentHash: string = "",           // hash this block
-        public nonce: number                      // number to confirm a new block
+        public nonce: number,                     // number to confirm a new block
+        public timestamp = Date.now(),            // time new block is created
     ) { }
 
     // MARK:- Getter
     get hash() {
-        const str = JSON.stringify({ index: this.index, prevHash: this.prevHash, timestamp: this.timestamp, transaction: this.transactions, nonce: this.nonce });
+        const str = (this.index, + this.prevHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce).toString();
         const hash = crypto.createHash('SHA256');
         hash.update(str).end();
         return hash.digest('hex');
+    }
+
+    mineBlock(difficulty: any) {
+        while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+            this.nonce++;
+            this.curentHash = this.hash;
+        }
+    }
+
+    hasValidTransaction() {
+        for(const tx of this.transactions) {
+            if (!tx.isValid()) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 

@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSockets = exports.initP2PServer = exports.broadCastTransactionPool = exports.broadcastLatest = exports.connectToPeers = void 0;
+exports.broadcastAll = exports.initServer = exports.getSockets = exports.initP2PServer = exports.broadCastTransactionPool = exports.broadcastLatest = exports.connectToPeers = void 0;
 const WebSocket = require("ws");
 const chain_model_1 = require("./chain.model");
 // MARK:- Variable
 const sockets = [];
+let serverToClient;
 var MessageType;
 (function (MessageType) {
     MessageType[MessageType["QUERY_LATEST"] = 0] = "QUERY_LATEST";
@@ -18,6 +19,18 @@ class Message {
         this.type = 0;
     }
 }
+const initServer = () => {
+    serverToClient = new WebSocket.Server({ host: '192.168.1.5', port: 40567 });
+};
+exports.initServer = initServer;
+const broadcastAll = (msg) => {
+    for (const client of serverToClient.clients) {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(msg));
+        }
+    }
+};
+exports.broadcastAll = broadcastAll;
 const initP2PServer = (p2pPort) => {
     const server = new WebSocket.Server({ port: p2pPort });
     server.on('connection', (ws) => {
@@ -82,7 +95,7 @@ const initMessageHandler = (ws) => {
                     }
                     receivedTransactions.forEach((transaction) => {
                         try {
-                            //handleReceivedTransaction(transaction);
+                            chain_model_1.Chain.instance.addTransaction(transaction);
                             // if no error is thrown, transaction was indeed added to the pool
                             // let's broadcast transaction pool
                             broadCastTransactionPool();
@@ -116,7 +129,7 @@ const queryTransactionPoolMsg = () => ({
 });
 const responseTransactionPoolMsg = () => ({
     'type': MessageType.RESPONSE_TRANSACTION_POOL,
-    'data': null
+    'data': JSON.stringify(chain_model_1.Chain.instance.pendingTransaction)
 });
 const initErrorHandler = (ws) => {
     const closeConnection = (myWs) => {
@@ -137,9 +150,8 @@ const handleBlockchainResponse = (receivedBlocks) => {
         console.log('blockchain possibly behind. We got: '
             + latestBlockHeld.index + ' Peer got: ' + latestBlockReceived.index);
         if (latestBlockHeld.hash === latestBlockReceived.prevHash) {
-            // if (addBlockToChain(latestBlockReceived)) {
-            //     broadcast(responseLatestMsg());
-            // }
+            chain_model_1.Chain.instance.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2');
+            broadcast(responseLatestMsg());
         }
         else if (receivedBlocks.length === 1) {
             console.log('We have to query the chain from our peer');

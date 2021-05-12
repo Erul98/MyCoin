@@ -25,24 +25,37 @@ class Block {
     // MARK:- Init
     constructor(index, // index of block
     prevHash, // previous hash 
-    timestamp, // time new block is created
     transactions, // transactions
     curentHash = "", // hash this block
-    nonce // number to confirm a new block
-    ) {
+    nonce, // number to confirm a new block
+    timestamp = Date.now()) {
         this.index = index;
         this.prevHash = prevHash;
-        this.timestamp = timestamp;
         this.transactions = transactions;
         this.curentHash = curentHash;
         this.nonce = nonce;
+        this.timestamp = timestamp;
     }
     // MARK:- Getter
     get hash() {
-        const str = JSON.stringify({ index: this.index, prevHash: this.prevHash, timestamp: this.timestamp, transaction: this.transactions, nonce: this.nonce });
+        const str = (this.index, +this.prevHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce).toString();
         const hash = crypto.createHash('SHA256');
         hash.update(str).end();
         return hash.digest('hex');
+    }
+    mineBlock(difficulty) {
+        while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+            this.nonce++;
+            this.curentHash = this.hash;
+        }
+    }
+    hasValidTransaction() {
+        for (const tx of this.transactions) {
+            if (!tx.isValid()) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 exports.Block = Block;

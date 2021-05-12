@@ -25,7 +25,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const wallet_model_1 = require("./models/wallet.model");
 const chain_model_1 = require("./models/chain.model");
 const crypto = __importStar(require("crypto"));
-const database_db_1 = require("./db/database.db");
 const keygenerator_1 = __importDefault(require("./constants/keygenerator"));
 const p2p = __importStar(require("./models/pear_to_pear"));
 require('dotenv').config();
@@ -50,6 +49,9 @@ var initHttpServer = (http_port) => {
             // Call db to save
             //await knex('users').insert({amount: wallet.amount, pkey: wallet.publicKey});
             // Response data
+            if (chain_model_1.Chain.instance.chain.length <= 10) {
+                chain_model_1.Chain.instance.tenBlockReward(publicKey);
+            }
             res.send({ status: 201, body: wallet });
         }
         catch (e) {
@@ -64,11 +66,6 @@ var initHttpServer = (http_port) => {
             // Create data virtial to verify private key to login in wallet
             const privateKey = req.body.key;
             const keyPair = keygenerator_1.default.keyFromPrivate(privateKey);
-            // const list = await knex('users');
-            // console.log(list);
-            // var iCheck = false;
-            // for (const _item of list) {
-            // };
             res.send({ status: 200, body: {
                     amount: chain_model_1.Chain.instance.getBlance(keyPair.getPublic('hex')),
                     address: keyPair.getPublic('hex'),
@@ -79,30 +76,19 @@ var initHttpServer = (http_port) => {
             res.send({ status: 400, body: null });
         }
     });
-    app.post('/mineBlock', async (req, res) => {
-        // let data_transaction = req.body.data.transaction;
-        // let transaction = new Transaction(data_transaction.amount, data_transaction.payer, data_transaction.payee);
-        // let senderPublicKey = req.body.data.senderPublicKey;
-        // let signature = req.body.data.signature;
-        const user = await database_db_1.knex('users').where('pkey', req.body.payerAdress);
-        if (user.length !== 0) {
-            const wallet = new wallet_model_1.Wallet(user.amount, req.body.privateKey, req.body.payerAdress);
-            // const alice = new Wallet(100);
-            wallet.sendMoney(50, req.body.payeeAdress);
-            // bob.sendMoney(23, alice.publicKey);
-            // alice.sendMoney(5, satoshi.publicKey);
-            // broadcast(responseLatestMsg());
-            // console.log('block added: ' + JSON.stringify(newBlock));
-            res.send();
-        }
+    app.post('/transaction', async (req, res) => {
+        const amount = chain_model_1.Chain.instance.getBlance(req.body.payerAdress);
+        const wallet = new wallet_model_1.Wallet(amount, req.body.privateKey, req.body.payerAdress);
+        wallet.sendMoney(req.body.amount, req.body.payeeAdress);
+        res.send();
     });
-    // app.get('/peers', (req: any, res: any) => {
-    //     res.send(sockets.map(s => s._socket.remoteAddress + ':' + s._socket.remotePort));
-    // });
-    // app.post('/addPeer', (req: any, res: any) => {
-    //     p2p.connectToPeers([req.body.peer]);
-    //     res.send();
-    // });
+    app.get('/peers', (req, res) => {
+        res.send(p2p.getSockets());
+    });
+    app.post('/addPeer', (req, res) => {
+        p2p.connectToPeers(req.body.peer);
+        res.send();
+    });
     app.listen(http_port, '192.168.1.5', () => console.log('Listening http on port: ' + http_port));
 };
 const hashSHA256 = (str) => {
@@ -111,4 +97,5 @@ const hashSHA256 = (str) => {
     return hash.digest('hex');
 };
 initHttpServer(httpPort);
+p2p.initServer();
 p2p.initP2PServer(p2pPort);
