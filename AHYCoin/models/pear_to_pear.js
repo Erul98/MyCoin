@@ -32,7 +32,7 @@ const broadcastAll = (msg) => {
 };
 exports.broadcastAll = broadcastAll;
 const initP2PServer = (p2pPort) => {
-    const server = new WebSocket.Server({ port: p2pPort });
+    const server = new WebSocket.Server({ host: process.env.HOST, port: p2pPort });
     server.on('connection', (ws) => {
         initConnection(ws);
     });

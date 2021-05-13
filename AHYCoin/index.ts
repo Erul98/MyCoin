@@ -18,7 +18,7 @@ var initHttpServer = (http_port: number) => {
     let app = express();
     app.use(bodyParser.json());
 
-    app.get('api/v1/blocks', (req: any, res: any) => res.send(Chain.instance.chain));
+    app.get('/api/v1/blocks', (req: any, res: any) => res.send(Chain.instance.chain));
 
     app.post('/api/v1/wallet', async (req: any, res: any) => {
         try {
@@ -62,7 +62,7 @@ var initHttpServer = (http_port: number) => {
         }
     });
 
-    app.post('api/v1/transactions', async(req: any, res: any) => {
+    app.post('/api/v1/transactions', async(req: any, res: any) => {
         const amount = Chain.instance.getBlance(req.body.payerAdress);
         if (amount > req.body.amount) {
             const wallet = new Wallet(amount, req.body.privateKey, req.body.payerAdress);
@@ -77,11 +77,11 @@ var initHttpServer = (http_port: number) => {
         }
     });
 
-    app.get('api/v1/peers', (req: any, res: any) => {
+    app.get('/api/v1/peers', (req: any, res: any) => {
         res.send(p2p.getSockets());
     });
 
-    app.post('api/v1/peers', (req: any, res: any) => {
+    app.post('/api/v1/peers', (req: any, res: any) => {
         p2p.connectToPeers(req.body.peer);
         res.send();
     });
