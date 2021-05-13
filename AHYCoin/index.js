@@ -35,7 +35,7 @@ const p2pPort = parseInt(process.env.P2P_PORT || "6001");
 var initHttpServer = (http_port) => {
     let app = express();
     app.use(bodyParser.json());
-    app.get('/blocks', (req, res) => res.send(chain_model_1.Chain.instance.chain));
+    app.get('api/v1/blocks', (req, res) => res.send(chain_model_1.Chain.instance.chain));
     app.post('/api/v1/wallet', async (req, res) => {
         try {
             // Create key pair
@@ -76,7 +76,7 @@ var initHttpServer = (http_port) => {
             res.send({ status: 400, body: null });
         }
     });
-    app.post('/transaction', async (req, res) => {
+    app.post('api/v1/transaction', async (req, res) => {
         const amount = chain_model_1.Chain.instance.getBlance(req.body.payerAdress);
         if (amount > req.body.amount) {
             const wallet = new wallet_model_1.Wallet(amount, req.body.privateKey, req.body.payerAdress);
@@ -92,10 +92,10 @@ var initHttpServer = (http_port) => {
             res.send({ status: 400, message: 'send money error' });
         }
     });
-    app.get('/peers', (req, res) => {
+    app.get('api/v1/peers', (req, res) => {
         res.send(p2p.getSockets());
     });
-    app.post('/addPeer', (req, res) => {
+    app.post('api/v1/peers', (req, res) => {
         p2p.connectToPeers(req.body.peer);
         res.send();
     });
