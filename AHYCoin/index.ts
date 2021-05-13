@@ -62,7 +62,7 @@ var initHttpServer = (http_port: number) => {
         }
     });
 
-    app.post('api/v1/transaction', async(req: any, res: any) => {
+    app.post('api/v1/transactions', async(req: any, res: any) => {
         const amount = Chain.instance.getBlance(req.body.payerAdress);
         if (amount > req.body.amount) {
             const wallet = new Wallet(amount, req.body.privateKey, req.body.payerAdress);

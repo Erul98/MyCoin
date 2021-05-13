@@ -66,7 +66,6 @@ const JSONToObject = <T>(data: string): T | null => {
 
 const initMessageHandler = (ws: WebSocket) => {
     ws.on('message', (data: string) => {
-
         try {
             const message = JSONToObject<Message>(data);
             if (message === null) {
