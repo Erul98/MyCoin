@@ -35,7 +35,7 @@ class Chain {
      * @returns Genersis block
      */
     genesisBlock = () => {
-        const genesisBlock = new Block(0, '', [new Transaction(1000000, '', '044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')], '', 0);
+        const genesisBlock = new Block(0, '', [new Transaction(1000000, 'Genersis Block Created', '044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')], '', 0);
         genesisBlock.curentHash = genesisBlock.hash;
         return genesisBlock
     }
@@ -199,6 +199,7 @@ class Chain {
         const nextBlock = this.generateNextBlock(this.pendingTransaction);
         // Minining
         const resolvedBlock = this.findBlock(nextBlock);
+        console.log('mining completed: '+ resolvedBlock.nonce.toString());
         this.chain.push(resolvedBlock);
         this.pendingTransaction = [];
         broadcastAll(this.chain);
@@ -208,15 +209,18 @@ class Chain {
 
     addTransaction(transaction: Transaction) {
         if (!transaction.payer || !transaction.payee) {
-            throw new Error('Transaction must include payer & payee address');
+            return false;
+            //throw new Error('Transaction must include payer & payee address');
         }
 
         if (!transaction.isValid()) {
-            throw new Error('Cannot add valid transaction to chain');
+            return false;
+            //throw new Error('Cannot add valid transaction to chain');
         }
         this.pendingTransaction.push(transaction);
         this.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')
         broadCastTransactionPool();
+        return true;
     }
 
     hashSHA256 = (str: any) => {

@@ -66,10 +66,14 @@ var initHttpServer = (http_port: number) => {
         const amount = Chain.instance.getBlance(req.body.payerAdress);
         if (amount > req.body.amount) {
             const wallet = new Wallet(amount, req.body.privateKey, req.body.payerAdress);
-            wallet.sendMoney(req.body.amount, req.body.payeeAdress);
-            res.send({status: 200, body: 'send money success'});   
+            const status = wallet.sendMoney(req.body.amount, req.body.payeeAdress);
+            if (status) {
+                res.send({status: 200, message: 'send money success'});   
+            } else {
+                res.send({status: 400, message: 'send money error'});   
+            }
         } else {
-            res.send({status: 400, body: 'send money error'});   
+            res.send({status: 400, message: 'send money error'});   
         }
     });
 
@@ -81,7 +85,7 @@ var initHttpServer = (http_port: number) => {
         p2p.connectToPeers(req.body.peer);
         res.send();
     });
-    app.listen(http_port, '192.168.1.5', () => console.log('Listening http on port: ' + http_port));
+    app.listen(http_port, process.env.HOST, () => console.log('Listening http on port: ' + http_port));
 };
 
 const hashSHA256 = (str: any) => {

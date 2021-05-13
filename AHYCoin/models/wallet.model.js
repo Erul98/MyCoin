@@ -44,7 +44,7 @@ class Wallet {
         const transaction = new transaction_model_1.Transaction(amount, this.publicKey, payeePublicKey);
         const signingKey = keygenerator_1.default.keyFromPrivate(this.privateKey, 'hex');
         transaction.signTransaction(signingKey);
-        chain_model_1.Chain.instance.addTransaction(transaction);
+        return chain_model_1.Chain.instance.addTransaction(transaction);
     }
 }
 exports.Wallet = Wallet;

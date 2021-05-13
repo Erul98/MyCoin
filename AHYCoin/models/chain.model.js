@@ -37,7 +37,7 @@ class Chain {
          * @returns Genersis block
          */
         this.genesisBlock = () => {
-            const genesisBlock = new block_model_1.Block(0, '', [new transaction_model_1.Transaction(1000000, '', '044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')], '', 0);
+            const genesisBlock = new block_model_1.Block(0, '', [new transaction_model_1.Transaction(1000000, 'Genersis Block Created', '044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2')], '', 0);
             genesisBlock.curentHash = genesisBlock.hash;
             return genesisBlock;
         };
@@ -211,6 +211,7 @@ class Chain {
         const nextBlock = this.generateNextBlock(this.pendingTransaction);
         // Minining
         const resolvedBlock = this.findBlock(nextBlock);
+        console.log('mining completed: ' + resolvedBlock.nonce.toString());
         this.chain.push(resolvedBlock);
         this.pendingTransaction = [];
         pear_to_pear_1.broadcastAll(this.chain);
@@ -219,14 +220,17 @@ class Chain {
     }
     addTransaction(transaction) {
         if (!transaction.payer || !transaction.payee) {
-            throw new Error('Transaction must include payer & payee address');
+            return false;
+            //throw new Error('Transaction must include payer & payee address');
         }
         if (!transaction.isValid()) {
-            throw new Error('Cannot add valid transaction to chain');
+            return false;
+            //throw new Error('Cannot add valid transaction to chain');
         }
         this.pendingTransaction.push(transaction);
         this.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2');
         pear_to_pear_1.broadCastTransactionPool();
+        return true;
     }
 }
 exports.Chain = Chain;

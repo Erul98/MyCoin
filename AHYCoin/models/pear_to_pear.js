@@ -20,7 +20,7 @@ class Message {
     }
 }
 const initServer = () => {
-    serverToClient = new WebSocket.Server({ host: '192.168.1.5', port: 40567 });
+    serverToClient = new WebSocket.Server({ host: process.env.HOST, port: 40567 });
 };
 exports.initServer = initServer;
 const broadcastAll = (msg) => {

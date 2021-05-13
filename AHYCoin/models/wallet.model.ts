@@ -17,7 +17,7 @@ class Wallet {
         const transaction = new Transaction(amount, this.publicKey, payeePublicKey);
         const signingKey = ec.keyFromPrivate(this.privateKey, 'hex');
         transaction.signTransaction(signingKey);
-        Chain.instance.addTransaction(transaction)
+        return Chain.instance.addTransaction(transaction)
     }
 
     hashSHA256 = (data: any) => {
