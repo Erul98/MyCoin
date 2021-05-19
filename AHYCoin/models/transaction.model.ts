@@ -23,7 +23,7 @@ class Transaction {
     isValid() {
         if (this.payer === "") return true;
         if (!this.signature || this.signature.length === 0) {
-            throw new Error('No signature in this transaction');
+            return false;
         }
         const publicKey = ec.keyFromPublic(this.payer, 'hex');
         return publicKey.verify(this.getTxHash(), this.signature);

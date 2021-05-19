@@ -47,7 +47,7 @@ class Transaction {
         if (this.payer === "")
             return true;
         if (!this.signature || this.signature.length === 0) {
-            throw new Error('No signature in this transaction');
+            return false;
         }
         const publicKey = keygenerator_1.default.keyFromPublic(this.payer, 'hex');
         return publicKey.verify(this.getTxHash(), this.signature);

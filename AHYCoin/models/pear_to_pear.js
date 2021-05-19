@@ -20,6 +20,7 @@ class Message {
     }
 }
 const initServer = () => {
+    console.log(process.env.HOST);
     serverToClient = new WebSocket.Server({ host: process.env.HOST, port: 40567 });
 };
 exports.initServer = initServer;
@@ -129,7 +130,7 @@ const queryTransactionPoolMsg = () => ({
 });
 const responseTransactionPoolMsg = () => ({
     'type': MessageType.RESPONSE_TRANSACTION_POOL,
-    'data': JSON.stringify(chain_model_1.Chain.instance.pendingTransaction)
+    'data': JSON.stringify(chain_model_1.Chain.instance.transactionPool)
 });
 const initErrorHandler = (ws) => {
     const closeConnection = (myWs) => {

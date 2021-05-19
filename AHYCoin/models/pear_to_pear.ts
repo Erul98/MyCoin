@@ -22,6 +22,7 @@ class Message {
 }
 
 const initServer = () => {
+    console.log(process.env.HOST);
     serverToClient = new WebSocket.Server({host: process.env.HOST, port: 40567});
 }
 
@@ -138,7 +139,7 @@ const queryTransactionPoolMsg = (): Message => ({
 
 const responseTransactionPoolMsg = (): Message => ({
     'type': MessageType.RESPONSE_TRANSACTION_POOL,
-    'data': JSON.stringify(Chain.instance.pendingTransaction)
+    'data': JSON.stringify(Chain.instance.transactionPool)
 });
 
 const initErrorHandler = (ws: WebSocket) => {

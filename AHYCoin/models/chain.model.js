@@ -187,6 +187,30 @@ class Chain {
                 return this.difficulty;
             }
         };
+        this.getMiningReward = (transactions) => {
+            this.miningReward = 0;
+            if (transactions.length === 1 && transactions[0].payer === "Reward") {
+                this.miningReward = 0;
+            }
+            else if (transactions.length > 0) {
+                let sum = 0;
+                transactions.forEach(element => {
+                    sum += element.amount;
+                });
+                if (sum * 0.1 < 0.0000001) {
+                    this.miningReward = 0.0000001;
+                }
+                else {
+                    this.miningReward = Math.round(sum * 0.1 * 10000000) / 10000000;
+                }
+            }
+        };
+        this.statingMining = () => {
+            setTimeout(() => {
+                this.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2');
+                this.statingMining();
+            }, 10000);
+        };
         this.hashSHA256 = (str) => {
             const hash = crypto.createHash('SHA256');
             hash.update(str).end();
@@ -195,7 +219,9 @@ class Chain {
         this.chain = [this.genesisBlock()];
         this.difficulty = 1;
         this.pendingTransaction = [];
-        this.miningReward = 10;
+        this.transactionPool = [];
+        this.miningReward = 0;
+        this.statingMining();
     }
     // MARK:- Getter
     get lastBlock() {
@@ -208,28 +234,46 @@ class Chain {
      * @param signature
      */
     minePendingTransaction(miningRewardAddress) {
-        const nextBlock = this.generateNextBlock(this.pendingTransaction);
-        // Minining
-        const resolvedBlock = this.findBlock(nextBlock);
-        console.log('mining completed: ' + resolvedBlock.nonce.toString());
-        this.chain.push(resolvedBlock);
-        this.pendingTransaction = [];
-        pear_to_pear_1.broadcastAll(this.chain);
-        pear_to_pear_1.broadcastLatest();
-        this.pendingTransaction.push(new transaction_model_1.Transaction(this.miningReward, "Reward", miningRewardAddress));
+        if (this.pendingTransaction.length > 0) {
+            const transactionsResolved = this.pendingTransaction;
+            this.pendingTransaction = [];
+            const nextBlock = this.generateNextBlock(transactionsResolved);
+            // Minining
+            const resolvedBlock = this.findBlock(nextBlock);
+            console.log('mining completed: ' + resolvedBlock.nonce.toString());
+            this.chain.push(resolvedBlock);
+            pear_to_pear_1.broadcastAll(this.chain);
+            pear_to_pear_1.broadcastLatest();
+            this.getMiningReward(transactionsResolved);
+            if (this.miningReward !== 0) {
+                this.pendingTransaction.push(new transaction_model_1.Transaction(this.miningReward, "Reward", miningRewardAddress));
+            }
+            else {
+                console.log("Have not reward");
+            }
+        }
+        else {
+            console.log("NULL");
+        }
     }
     addTransaction(transaction) {
-        if (!transaction.payer || !transaction.payee) {
-            return false;
-            //throw new Error('Transaction must include payer & payee address');
-        }
-        if (!transaction.isValid()) {
-            return false;
-            //throw new Error('Cannot add valid transaction to chain');
-        }
-        this.pendingTransaction.push(transaction);
-        this.minePendingTransaction('044b38ebaf811999af23192526fe247fa9c685a05e4e55d6eaecf34302dfbf01eb76aa1b8c4b7b3563918576b303ecd14799f37e6e5f962410d35e93da49a825f2');
+        this.transactionPool.push(transaction);
         pear_to_pear_1.broadCastTransactionPool();
+        this.transactionPool.forEach(element => {
+            if (!element.payer || !element.payee) {
+                return false;
+                //throw new Error('Transaction must include payer & payee address');
+            }
+            if (!element.isValid()) {
+                return false;
+                //throw new Error('Cannot add valid transaction to chain');
+            }
+            const index = this.transactionPool.indexOf(element);
+            if (index > -1) {
+                this.transactionPool.splice(index, 1);
+            }
+            this.pendingTransaction.push(transaction);
+        });
         return true;
     }
 }
